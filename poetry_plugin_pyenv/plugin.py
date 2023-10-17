@@ -45,18 +45,35 @@ class PyenvPlugin(ApplicationPlugin):
         if command._env is not None:
             return
 
+        io = event.io
+
         poetry = command.poetry
         prefer_active_python: bool = poetry.config.get(
             "virtualenvs.prefer-active-python"
         )
         if not prefer_active_python:
+            if io.is_debug():
+                io.write_line(
+                    "<debug>Not using pyenv because virtualenvs.prefer-active-python is set to false</debug>"
+                )
             return
 
         from poetry.utils.env import EnvManager
 
         poetry = command.poetry
-        io = event.io
         manager = EnvManager(poetry, io=io)
+
+        pyenv.find_pyenv()
+        
+        if not pyenv.was_located():
+            io.write_line(
+                f"<warning>pyenv was not found on your system, attempting to use default path for pyenv.</warning>"
+            )
+        else:
+            if io.is_debug():
+                io.write_line(
+                    "<debug>Using pyenv found at {}</debug>".format(pyenv.find_pyenv())
+                )
 
         create = False
         if not (
